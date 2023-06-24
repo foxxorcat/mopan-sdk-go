@@ -174,14 +174,12 @@ type CommitMultiUploadData struct {
 }
 
 // 提交上传文件
-func (c *MoClient) CommitMultiUploadFile(uploadFileId, folderId string, paramOption []ParamOption, option ...RestyOption) (*CommitMultiUploadData, error) {
+func (c *MoClient) CommitMultiUploadFile(uploadFileId string, paramOption []ParamOption, option ...RestyOption) (*CommitMultiUploadData, error) {
 	param := Json{
-		"folderId":     folderId,
 		"uploadFileId": uploadFileId,
 		"opertype":     3,
 
-		"isLog":  "其他",
-		"source": 1,
+		"isLog": "其他",
 		// "filmingTime": "2006-01-02 15:04:05",
 	}
 	ApplyParamOption(param, paramOption...)
