@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -164,11 +165,11 @@ func (c *MoClient) GetAllMultiUploadUrls(uploadFileId string, partInfo []string,
 }
 
 type CommitMultiUploadData struct {
-	CreateDate string `json:"createDate"`
+	CreateDate Time4  `json:"createDate"`
 	FileMd5    string `json:"fileMd5"`
 	FileName   string `json:"fileName"`
-	FileSize   string `json:"fileSize"`
-	Rev        string `json:"rev"`
+	FileSize   Int64  `json:"fileSize"`
+	Rev        Time2  `json:"rev"`
 	UserFileID string `json:"userFileId"`
 	UserID     string `json:"userId"`
 }
@@ -190,4 +191,12 @@ func (c *MoClient) CommitMultiUploadFile(uploadFileId string, paramOption []Para
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// 宽带提速（不知道是不是真的）
+func (c *MoClient) CloudDiskStartBusiness() error {
+	_, err := c.Request(MoPanProxyFamily+"/v/accelerate/cloudDiskStartBusiness", Json{
+		"guid": time.Now().Unix(),
+	}, nil)
+	return err
 }

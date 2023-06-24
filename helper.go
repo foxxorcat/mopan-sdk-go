@@ -191,6 +191,17 @@ func (t *Time3) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type Time4 time.Time
+
+func (t *Time4) UnmarshalJSON(b []byte) error {
+	v, err := time.ParseInLocation("Jan 02, 2006 15:04:05 PM -07", strings.Trim(string(b), "\"")+" +08", time.Local)
+	if err != nil {
+		return err
+	}
+	*t = Time4(v)
+	return nil
+}
+
 type String string
 
 func (s *String) UnmarshalJSON(b []byte) error {

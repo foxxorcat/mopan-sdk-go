@@ -244,7 +244,7 @@ type RenameFileData struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Md5  string `json:"md5"`
-	Size int    `json:"size"`
+	Size int64  `json:"size"`
 
 	FileCata  int `json:"fileCata"`
 	MediaType int `json:"mediaType"`
@@ -363,13 +363,14 @@ type (
 
 	// 批量任务信息
 	TaskStatus struct {
-		TaskID              string   `json:"taskId"`              // 任务ID
-		TaskStatus          int      `json:"taskStatus"`          // 任务状态(1-4,4:完成,2:存在冲突)
-		SubTaskCount        int      `json:"subTaskCount"`        // 任务数量
-		SuccessedCount      int      `json:"successedCount"`      // 成功数量
-		FailedCount         int      `json:"failedCount"`         // 失败数量
-		SkipCount           int      `json:"skipCount"`           // 跳过数量
-		SuccessedFileIDList []string `json:"successedFileIdList"` // 成功文件ID
+		TaskID              string            `json:"taskId"`                       // 任务ID
+		TaskStatus          int               `json:"taskStatus"`                   // 任务状态(1-4,4:完成,2:存在冲突)
+		SubTaskCount        int               `json:"subTaskCount"`                 // 任务数量
+		SuccessedCount      int               `json:"successedCount"`               // 成功数量
+		FailedCount         int               `json:"failedCount"`                  // 失败数量
+		SkipCount           int               `json:"skipCount"`                    // 跳过数量
+		SuccessedFileIDList []string          `json:"successedFileIdList"`          // 成功文件ID
+		SuccessedFileIdMap  map[string]string `json:"successedFileIdMap,omitempty"` // only copy
 	}
 
 	TaskParam struct {
