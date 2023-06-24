@@ -46,12 +46,14 @@ func (c *MoClient) SetAuthorization(authorization string) *MoClient {
 	return c
 }
 
-func (c *MoClient) SetClient(client *http.Client) {
+func (c *MoClient) SetClient(client *http.Client) *MoClient {
 	c.Client = resty.NewWithClient(client)
+	return c
 }
 
-func (c *MoClient) SetRestyClient(client *resty.Client) {
+func (c *MoClient) SetRestyClient(client *resty.Client) *MoClient {
 	c.Client = client
+	return c
 }
 
 func (c *MoClient) SetProxy(proxy string) *MoClient {
