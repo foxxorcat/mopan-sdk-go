@@ -429,6 +429,19 @@ type (
 		TargetUserOrCloudID string   `json:"targetUserOrCloudId"` // 目标用户ID或共享空间ID
 	}
 
+	TaskManageFileParam struct {
+		DealWay int `json:"dealWay"` // 处理方法（1：跳过，2：同时存在，3：覆盖）
+		TaskFileParam
+	}
+
+	TaskManageParam struct {
+		TaskID         string                `json:"taskId"`
+		TaskType       TaskType              `json:"taskType"`       // 操作
+		TargetFolderID string                `json:"targetFolderId"` // 目标文件夹
+		Type           int                   `json:"type"`           // 1
+		TaskInfos      []TaskManageFileParam `json:"taskInfos"`
+	}
+
 	TaskBaseInfo struct {
 		TaskIDList []string `json:"taskIdList"`
 		TaskType   TaskType `json:"taskType"`
@@ -513,4 +526,16 @@ func (c *MoClient) GetConflictTaskInfo(taskID string, taskType TaskType, option 
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// 处理冲突任务
+func (c *MoClient) ManageBatchTask(task TaskManageParam, option ...RestyOption) error {
+	var param Json
+	data, err := c.Client.JSONMarshal(task)
+	if err != nil {
+		return err
+	}
+	c.Client.JSONUnmarshal(data, &param)
+	_, err = c.Request(MoPanProxyFamily+"/task/status/manageBatchTask", param, nil, option...)
+	return err
 }
