@@ -18,23 +18,6 @@ import (
 // 	IsDel      Bool   `json:"isDel"`      // 软删除
 // }
 
-// type UserCloudStorageRelations struct {
-// 	ID string `json:"id"` // 数据库ID
-
-// 	FolderID string `json:"folderId"` // 目录ID
-// 	Name     string `json:"name"`     // 名称
-
-// 	CatalogueType int   `json:"catalogueType"` // 分类 (1:文件|私密空间，2:相册,4:视频,5:音频,6:文档,9:同步盘)
-// 	CloudType     int   `json:"cloudType"`     // (1:普通文件，2:私密空间)
-// 	FileOrAlbum   int   `json:"fileOrAlbum"`   // 文件或相册(1:文件,2:相册)
-// 	Path          string `json:"path"`          // 路径
-
-// 	UserID     string `json:"userId"`     // 用户ID
-// 	CreateTime string `json:"createTime"` // 创建时间
-// 	UpdateTime string `json:"updateTime"` // 更新时间
-// 	IsDel      Bool   `json:"isDel"`      // 软删除
-// }
-
 // 用户详细信息
 type UserInfo struct {
 	UserID   string `json:"userId"`   // 用户ID

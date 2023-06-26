@@ -97,6 +97,35 @@ type (
 	}
 )
 
+type UserCloudStorageData struct {
+	ID string `json:"id"` // 数据库ID
+
+	FolderID string `json:"folderId"` // 目录ID
+	Name     string `json:"name"`     // 名称
+
+	CatalogueType int    `json:"catalogueType"` // 分类 (1:文件|私密空间，2:相册,4:视频,5:音频,6:文档,9:同步盘)
+	CloudType     int    `json:"cloudType"`     // (1:普通文件，2:私密空间)
+	FileOrAlbum   int    `json:"fileOrAlbum"`   // 文件或相册(1:文件,2:相册)
+	Path          string `json:"path"`          // 路径
+
+	UserID     string `json:"userId"`     // 用户ID
+	CreateTime string `json:"createTime"` // 创建时间
+	UpdateTime string `json:"updateTime"` // 更新时间
+	IsDel      Bool   `json:"isDel"`      // 软删除
+}
+
+// 查询所有用户空间
+func (c *MoClient) QueryUserCloudStorage(option ...RestyOption) ([]UserCloudStorageData, error) {
+	var resp []UserCloudStorageData
+	_, err := c.Request(MoPanProxyFamily+"/user/cloudStorage/getByUserId", Json{
+		"type": 2,
+	}, &resp, option...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 type SearchFileData struct {
 	Count      int    `json:"count"`
 	FolderList Folder `json:"folderList"`
@@ -173,9 +202,7 @@ func (c *MoClient) QueryFiles(folderId string, pageNum int, paramOption []ParamO
 
 // 获取文件详细信息
 // 可用选项 QueryFileOptionIconOption QueryFileOptionMediaAttr QueryFileOptionShareFile
-// 返回 FileInfo 或 FolderInfo
-// 当查询 -11 或某些文件夹时会以FileInfo返回
-func (c *MoClient) GetFileInfo(fileId string, paramOption []ParamOption, option ...RestyOption) (any, error) {
+func (c *MoClient) GetFileInfo(fileId string, paramOption []ParamOption, option ...RestyOption) (*FileInfo, error) {
 	param := Json{
 		"fileId": fileId,
 
@@ -188,20 +215,29 @@ func (c *MoClient) GetFileInfo(fileId string, paramOption []ParamOption, option 
 
 	ApplyParamOption(param, paramOption...)
 
-	var folder FolderInfo
-	data, err := c.Request(MoPanProxyFamily+"/file/getFileInfo", param, &folder, option...)
+	var file FileInfo
+	_, err := c.Request(MoPanProxyFamily+"/file/getFileInfo", param, &file, option...)
 	if err != nil {
 		return nil, err
 	}
+	return &file, nil
+}
 
-	if folder.FileID == "" {
-		var file FileInfo
-		if err = c.Client.JSONUnmarshal(data, &file); err != nil {
-			return nil, err
-		}
-		return file, nil
+// 获取文件详细信息
+func (c *MoClient) GetFolderInfo(folderId string, paramOption []ParamOption, option ...RestyOption) (*FolderInfo, error) {
+	param := Json{
+		"folderId": folderId,
+
+		"source": 1, // (个人:1,共享:2)
+		"type":   1,
 	}
-	return folder, nil
+
+	var folder FolderInfo
+	_, err := c.Request(MoPanProxyFamily+"/file/getFolderInfo", param, &folder, option...)
+	if err != nil {
+		return nil, err
+	}
+	return &folder, nil
 }
 
 // 创建文件夹
@@ -377,11 +413,20 @@ type (
 		UserOrCloudID           string          `json:"userOrCloudId"`       // 用户ID或共享空间ID
 		Source                  int             `json:"source"`              // (1:用户,2:共享)
 		TaskType                TaskType        `json:"taskType"`            // 操作
-		TargetSource            int             `json:"targetSource"`        // 目标 (1:用户,2:共享)
 		TargetUserOrCloudID     string          `json:"targetUserOrCloudId"` // 目标用户ID或共享空间ID
-		TargetType              int             `json:"targetType"`
-		TargetFolderID          string          `json:"targetFolderId"` // 目标文件夹
+		TargetSource            int             `json:"targetSource"`        // 目标 (1:用户,2:共享)
+		TargetType              int             `json:"targetType"`          // 1
+		TargetFolderID          string          `json:"targetFolderId"`      // 目标文件夹
 		TaskStatusDetailDTOList []TaskFileParam `json:"taskStatusDetailDTOList"`
+	}
+
+	TaskCheckParam struct {
+		TaskId              string   `json:"taskId"`
+		TaskType            TaskType `json:"taskType"`            // 操作
+		TargetType          int      `json:"targetType"`          // 1
+		TargetFolderID      string   `json:"targetFolderId"`      // 目标文件夹
+		TargetSource        int      `json:"targetSource"`        // 目标 (1:用户,2:共享)
+		TargetUserOrCloudID string   `json:"targetUserOrCloudId"` // 目标用户ID或共享空间ID
 	}
 
 	TaskBaseInfo struct {
@@ -405,18 +450,16 @@ const (
 )
 
 // 检查批量任务状态
-func (c *MoClient) CheckBatchTask(taskID string, taskType TaskType, option ...RestyOption) (*TaskStatus, error) {
-	param := Json{
-		"taskId":   taskID,
-		"taskType": taskType,
-		// "targetType": 1,
-		// "targetFolderId":      "", // 目标文件夹
-		// "targetSource":        "", //
-		// "targetUserOrCloudId": "", // 目标用户或共享空间
+func (c *MoClient) CheckBatchTask(task TaskCheckParam, option ...RestyOption) (*TaskStatus, error) {
+	var param Json
+	data, err := c.Client.JSONMarshal(task)
+	if err != nil {
+		return nil, err
 	}
+	c.Client.JSONUnmarshal(data, &param)
 
 	var resp TaskStatus
-	_, err := c.Request(MoPanProxyFamily+"/task/status/checkBatchTask", param, &resp, option...)
+	_, err = c.Request(MoPanProxyFamily+"/task/status/checkBatchTask", param, &resp, option...)
 	if err != nil {
 		return nil, err
 	}
@@ -438,6 +481,18 @@ func (c *MoClient) AddBatchTask(task TaskParam, option ...RestyOption) (*TaskDat
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// 取消批量任务
+func (c *MoClient) CancelBatchTask(taskId string, taskType TaskType, option ...RestyOption) error {
+	_, err := c.Request(MoPanProxyFamily+"/task/status/cancelBatchTask", Json{
+		"taskId":   taskId,
+		"taskType": taskType,
+	}, nil, option...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type GetConflictTaskInfoData struct {

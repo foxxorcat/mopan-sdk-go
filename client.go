@@ -3,9 +3,12 @@ package mopan
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -29,6 +32,15 @@ type MoClient struct {
 	DeviceInfo    string
 
 	Client *resty.Client
+
+	onAuthorizationExpired func(err error) error
+	flag                   int32
+}
+
+// 当Token生效时回调
+func (c *MoClient) SetOnAuthorizationExpired(f func(err error) error) *MoClient {
+	c.onAuthorizationExpired = f
+	return c
 }
 
 func (c *MoClient) SetDeviceInfo(info string) *MoClient {
@@ -36,6 +48,10 @@ func (c *MoClient) SetDeviceInfo(info string) *MoClient {
 		c.DeviceInfo = info
 	}
 	return c
+}
+
+func (c *MoClient) GetDeviceInfo() string {
+	return c.DeviceInfo
 }
 
 func (c *MoClient) SetAuthorization(authorization string) *MoClient {
@@ -99,6 +115,11 @@ func (c *MoClient) request(url string, data Json, resp any, option ...RestyOptio
 
 	var result Resp
 	c.Client.JSONUnmarshal(body, &result)
+
+	if resp_.StatusCode() == http.StatusUnauthorized {
+		result.Code = 401
+	}
+
 	if result.Code != 200 {
 		return nil, &result
 	}
@@ -112,7 +133,29 @@ func (c *MoClient) request(url string, data Json, resp any, option ...RestyOptio
 }
 
 func (c *MoClient) Request(url string, data Json, resp any, option ...RestyOption) ([]byte, error) {
-	return c.request(url, data, resp, option...)
+	v, err := c.request(url, data, resp, option...)
+	if err != nil {
+		if err, ok := err.(*Resp); ok {
+			// 401 错误处理
+			if err.Code == 401 && c.onAuthorizationExpired != nil {
+				if atomic.CompareAndSwapInt32(&c.flag, 0, 1) {
+					err2 := c.onAuthorizationExpired(err)
+					atomic.SwapInt32(&c.flag, 0)
+					if err2 != nil {
+						return nil, errors.Join(err, err2)
+					}
+				}
+
+				for atomic.LoadInt32(&c.flag) != 0 {
+					time.Sleep(time.Second)
+				}
+
+				return c.request(url, data, resp, option...)
+			}
+		}
+		return nil, err
+	}
+	return v, nil
 }
 
 type Resp struct {
