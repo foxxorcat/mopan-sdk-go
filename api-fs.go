@@ -35,7 +35,7 @@ type (
 	File struct {
 		ID   String `json:"id"`
 		Name string `json:"name"` // 文件名
-		Size int64  `json:"size"` // 文件大小
+		Size Int64  `json:"size"` // 文件大小
 		Md5  string `json:"md5"`
 
 		IconBase
@@ -75,7 +75,7 @@ type (
 		ID       String `json:"id"`       // 文件ID
 		ParentID String `json:"parentId"` // 父ID
 		Name     string `json:"name"`     // 文件名
-		Size     int64  `json:"size"`     // 文件大小
+		Size     Int64  `json:"size"`     // 文件大小
 		Md5      string `json:"md5"`
 
 		NickName string `json:"nickName"` // 用户名称
@@ -280,7 +280,7 @@ type RenameFileData struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Md5  string `json:"md5"`
-	Size int64  `json:"size"`
+	Size Int64  `json:"size"`
 
 	FileCata  int `json:"fileCata"`
 	MediaType int `json:"mediaType"`
