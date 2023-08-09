@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -18,6 +18,13 @@ type Json map[string]any
 
 func NewMoClientWithAuthorization(authorization string) *MoClient {
 	return NewMoClient().SetAuthorization(authorization)
+}
+
+func NewMoClientWithRestyClient(client *resty.Client) *MoClient {
+	return &MoClient{
+		Client:     client,
+		DeviceInfo: DefaultDeviceInfo.Encrypt(),
+	}
 }
 
 func NewMoClient() *MoClient {
@@ -37,7 +44,7 @@ type MoClient struct {
 	flag                   int32
 }
 
-// 当Token生效时回调
+// 当Token失效时回调
 func (c *MoClient) SetOnAuthorizationExpired(f func(err error) error) *MoClient {
 	c.onAuthorizationExpired = f
 	return c
@@ -147,7 +154,7 @@ func (c *MoClient) Request(url string, data Json, resp any, option ...RestyOptio
 				}
 
 				for atomic.LoadInt32(&c.flag) != 0 {
-					time.Sleep(time.Second)
+					runtime.Gosched()
 				}
 
 				return c.request(url, data, resp, option...)

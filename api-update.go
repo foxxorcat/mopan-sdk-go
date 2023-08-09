@@ -28,16 +28,22 @@ type InitMultiUploadData struct {
 	UploadType     Int    `json:"uploadType"`
 	UploadHost     string `json:"uploadHost"`
 
-	PartSize int      `json:"-"`
-	PartInfo []string `json:"-"`
+	PartSize     int64    `json:"-"`
+	LastPartSize int64    `json:"-"`
+	PartInfo     []string `json:"-"`
 }
 
 // 初始化上传
 func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, paramOption []ParamOption, option ...RestyOption) (*InitMultiUploadData, error) {
-	partSize := 10485760
+	const partSize int64 = 10485760
 	count := int(math.Ceil(float64(file.FileSize) / float64(partSize)))
+	lastPartSize := file.FileSize % partSize
+	if file.FileSize > 0 && lastPartSize == 0 {
+		lastPartSize = partSize
+	}
 
 	// 优先计算所需信息
+	byteSize := partSize
 	fileMd5 := md5.New()
 	silceMd5 := md5.New()
 	silceMd5Hexs := make([]string, 0, count)
@@ -49,16 +55,18 @@ func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, p
 		default:
 		}
 
+		if i == count {
+			byteSize = lastPartSize
+		}
+
 		silceMd5.Reset()
-		if _, err := io.CopyN(io.MultiWriter(fileMd5, silceMd5), file.File, int64(partSize)); err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		if _, err := io.CopyN(io.MultiWriter(fileMd5, silceMd5), file.File, byteSize); err != nil && err != io.EOF {
 			return nil, err
 		}
+
 		md5Byte := silceMd5.Sum(nil)
 		silceMd5Hexs = append(silceMd5Hexs, strings.ToUpper(hex.EncodeToString(md5Byte)))
 		silceMd5Base64s = append(silceMd5Base64s, fmt.Sprint(i, "-", base64.StdEncoding.EncodeToString(md5Byte)))
-	}
-	if _, err := file.File.Seek(0, io.SeekStart); err != nil {
-		return nil, err
 	}
 
 	fileMd5Hex := strings.ToUpper(hex.EncodeToString(fileMd5.Sum(nil)))
@@ -89,6 +97,7 @@ func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, p
 		return nil, err
 	}
 	resp.PartSize = partSize
+	resp.LastPartSize = lastPartSize
 	resp.PartInfo = silceMd5Base64s
 	return &resp, nil
 }
