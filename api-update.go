@@ -19,23 +19,31 @@ type UpdloadFileParam struct {
 	ParentFolderId string
 	FileName       string
 	FileSize       int64
-	File           io.ReadSeeker
+	File           io.Reader
+
+	PartSize int64
 }
 
-type InitMultiUploadData struct {
-	FileDataExists Bool   `json:"fileDataExists"`
-	UploadFileID   string `json:"uploadFileId"`
-	UploadType     Int    `json:"uploadType"`
-	UploadHost     string `json:"uploadHost"`
+type UploadFilePartData struct {
+	ParentFolderId string
+	FileName       string
+	FileSize       int64
 
-	PartSize     int64    `json:"-"`
-	LastPartSize int64    `json:"-"`
-	PartInfo     []string `json:"-"`
+	FileMd5   string
+	SliceMd5  string
+	PartInfos []string // sliceMd5Base64s (i_md5base64)
+
+	PartTotal    int
+	PartSize     int64
+	LastPartSize int64
 }
 
-// 初始化上传
-func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, paramOption []ParamOption, option ...RestyOption) (*InitMultiUploadData, error) {
-	const partSize int64 = 10485760
+// 初始化上传参数
+func InitUploadPartData(ctx context.Context, file UpdloadFileParam) (*UploadFilePartData, error) {
+	if file.PartSize == 0 {
+		file.PartSize = 10485760
+	}
+	partSize := file.PartSize
 	count := int(math.Ceil(float64(file.FileSize) / float64(partSize)))
 	lastPartSize := file.FileSize % partSize
 	if file.FileSize > 0 && lastPartSize == 0 {
@@ -45,9 +53,9 @@ func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, p
 	// 优先计算所需信息
 	byteSize := partSize
 	fileMd5 := md5.New()
-	silceMd5 := md5.New()
-	silceMd5Hexs := make([]string, 0, count)
-	silceMd5Base64s := make([]string, 0, count)
+	sliceMd5 := md5.New()
+	sliceMd5Hexs := make([]string, 0, count)
+	partInfos := make([]string, 0, count)
 	for i := 1; i <= count; i++ {
 		select {
 		case <-ctx.Done():
@@ -59,29 +67,55 @@ func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, p
 			byteSize = lastPartSize
 		}
 
-		silceMd5.Reset()
-		if _, err := io.CopyN(io.MultiWriter(fileMd5, silceMd5), file.File, byteSize); err != nil && err != io.EOF {
+		sliceMd5.Reset()
+		if _, err := io.CopyN(io.MultiWriter(fileMd5, sliceMd5), file.File, byteSize); err != nil && err != io.EOF {
 			return nil, err
 		}
 
-		md5Byte := silceMd5.Sum(nil)
-		silceMd5Hexs = append(silceMd5Hexs, strings.ToUpper(hex.EncodeToString(md5Byte)))
-		silceMd5Base64s = append(silceMd5Base64s, fmt.Sprint(i, "-", base64.StdEncoding.EncodeToString(md5Byte)))
+		md5Byte := sliceMd5.Sum(nil)
+		sliceMd5Hexs = append(sliceMd5Hexs, strings.ToUpper(hex.EncodeToString(md5Byte)))
+		partInfos = append(partInfos, fmt.Sprint(i, "-", base64.StdEncoding.EncodeToString(md5Byte)))
 	}
 
 	fileMd5Hex := strings.ToUpper(hex.EncodeToString(fileMd5.Sum(nil)))
 	sliceMd5Hex := fileMd5Hex
 	if file.FileSize > int64(partSize) {
-		sliceMd5Hex = strings.ToUpper(Md5Hex(strings.Join(silceMd5Hexs, "\n")))
+		sliceMd5Hex = strings.ToUpper(Md5Hex(strings.Join(sliceMd5Hexs, "\n")))
 	}
 
+	return &UploadFilePartData{
+		ParentFolderId: file.ParentFolderId,
+		FileName:       file.FileName,
+		FileSize:       file.FileSize,
+
+		FileMd5:   fileMd5Hex,
+		SliceMd5:  sliceMd5Hex,
+		PartInfos: partInfos,
+
+		PartTotal:    count,
+		PartSize:     partSize,
+		LastPartSize: lastPartSize,
+	}, nil
+}
+
+type InitMultiUploadData struct {
+	FileDataExists Bool   `json:"fileDataExists"`
+	UploadFileID   string `json:"uploadFileId"`
+	UploadType     Int    `json:"uploadType"`
+	UploadHost     string `json:"uploadHost"`
+
+	UploadFilePartData `json:"-"`
+}
+
+// 初始化上传
+func (c *MoClient) InitMultiUpload(ctx context.Context, data UploadFilePartData, paramOption []ParamOption, option ...RestyOption) (*InitMultiUploadData, error) {
 	param := Json{
-		"parentFolderId": file.ParentFolderId,
-		"fileName":       file.FileName,
-		"fileSize":       file.FileSize,
-		"fileMd5":        fileMd5Hex,
-		"sliceMd5":       sliceMd5Hex,
-		"sliceSize":      partSize,
+		"parentFolderId": data.ParentFolderId,
+		"fileName":       data.FileName,
+		"fileSize":       data.FileSize,
+		"fileMd5":        data.FileMd5,
+		"sliceMd5":       data.SliceMd5,
+		"sliceSize":      data.PartSize,
 
 		"limitrate": "10240000", // 限制速度??
 		"source":    1,
@@ -96,9 +130,7 @@ func (c *MoClient) InitMultiUpload(ctx context.Context, file UpdloadFileParam, p
 	if err != nil {
 		return nil, err
 	}
-	resp.PartSize = partSize
-	resp.LastPartSize = lastPartSize
-	resp.PartInfo = silceMd5Base64s
+	resp.UploadFilePartData = data
 	return &resp, nil
 }
 
