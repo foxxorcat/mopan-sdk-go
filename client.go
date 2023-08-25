@@ -62,7 +62,7 @@ func (c *MoClient) GetDeviceInfo() string {
 }
 
 func (c *MoClient) SetAuthorization(authorization string) *MoClient {
-	if !strings.HasPrefix("Bearer", authorization) {
+	if !strings.HasPrefix(authorization, "Bearer") {
 		authorization = "Bearer " + authorization
 	}
 	c.Authorization = authorization

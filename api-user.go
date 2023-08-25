@@ -72,8 +72,21 @@ type (
 		// UserKeyInfo UserKeyInfo `json:"userKeyInfo"` // 用户关键信息
 		// HomeSubject any         `json:"homeSubject"`
 
-		// CloudCircleInfo           CloudCircleInfo             `json:"cloudCircleInfo"` // 共享空间信息
-		// UserCloudStorageRelations []UserCloudStorageRelations `json:"userCloudStorageRelations"` // 用户空间信息
+		UserCloudStorageRelations []UserCloudStorageRelation `json:"userCloudStorageRelations"` // 用户空间信息
+	}
+
+	UserCloudStorageRelation struct {
+		CatalogueType int    `json:"catalogueType"`
+		CloudType     int    `json:"cloudType"`
+		CreateTime    string `json:"createTime"`
+		FileOrAlbum   int    `json:"fileOrAlbum"`
+		FolderID      string `json:"folderId"`
+		ID            string `json:"id"`
+		IsDel         int    `json:"isDel"`
+		Name          string `json:"name"`
+		Path          string `json:"path"`
+		UpdateTime    string `json:"updateTime"`
+		UserID        string `json:"userId"`
 	}
 )
 
