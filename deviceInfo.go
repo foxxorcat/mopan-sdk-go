@@ -23,19 +23,19 @@ type DeviceInfo struct {
 	MpOsVersion2 string `json:"mp_osVersion2"` // 12
 }
 
-func (e *DeviceInfo) Encrypt() string {
+func (e *DeviceInfo) Encrypt(key string) string {
 	data, _ := json.Marshal(e)
-	enc, _ := AesEncrypt(data, []byte("abcdefgabcdefg12"))
+	enc, _ := AesEncrypt(data, []byte(key))
 	return base64.StdEncoding.EncodeToString(enc)
 
 }
 
-func (e *DeviceInfo) Decrypt(v string) error {
+func (e *DeviceInfo) Decrypt(v string, key string) error {
 	enc, err := base64.StdEncoding.DecodeString(v)
 	if err != nil {
 		return err
 	}
-	dec, err := AesDecrypt(enc, []byte("abcdefgabcdefg12"))
+	dec, err := AesDecrypt(enc, []byte(key))
 	if err != nil {
 		return err
 	}

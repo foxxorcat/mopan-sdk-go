@@ -231,6 +231,7 @@ func (c *MoClient) GetFolderInfo(folderId string, paramOption []ParamOption, opt
 		"source": 1, // (个人:1,共享:2)
 		"type":   1,
 	}
+	ApplyParamOption(param, paramOption...)
 
 	var folder FolderInfo
 	_, err := c.Request(MoPanProxyFamily+"/file/getFolderInfo", param, &folder, option...)

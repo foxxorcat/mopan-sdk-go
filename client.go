@@ -23,20 +23,20 @@ func NewMoClientWithAuthorization(authorization string) *MoClient {
 func NewMoClientWithRestyClient(client *resty.Client) *MoClient {
 	return &MoClient{
 		Client:     client,
-		DeviceInfo: DefaultDeviceInfo.Encrypt(),
+		DeviceInfo: DefaultDeviceInfo,
 	}
 }
 
 func NewMoClient() *MoClient {
 	return &MoClient{
 		Client:     resty.New(),
-		DeviceInfo: DefaultDeviceInfo.Encrypt(),
+		DeviceInfo: DefaultDeviceInfo,
 	}
 }
 
 type MoClient struct {
 	Authorization string
-	DeviceInfo    string
+	DeviceInfo    DeviceInfo
 
 	Client *resty.Client
 
@@ -50,14 +50,14 @@ func (c *MoClient) SetOnAuthorizationExpired(f func(err error) error) *MoClient 
 	return c
 }
 
-func (c *MoClient) SetDeviceInfo(info string) *MoClient {
-	if info != "" {
-		c.DeviceInfo = info
+func (c *MoClient) SetDeviceInfo(info *DeviceInfo) *MoClient {
+	if info != nil {
+		c.DeviceInfo = *info
 	}
 	return c
 }
 
-func (c *MoClient) GetDeviceInfo() string {
+func (c *MoClient) GetDeviceInfo() DeviceInfo {
 	return c.DeviceInfo
 }
 
@@ -90,7 +90,7 @@ func (c *MoClient) request(url string, data Json, resp any, option ...RestyOptio
 	req := c.Client.R().SetHeaders(map[string]string{
 		"Authorization": c.Authorization,
 		"encrypted-key": encryptedKey,
-		"remoteInfo":    c.DeviceInfo,
+		"remoteInfo":    c.DeviceInfo.Encrypt(secretKey),
 	})
 
 	if data != nil {

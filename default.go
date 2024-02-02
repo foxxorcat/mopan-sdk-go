@@ -28,6 +28,16 @@ pQIDAQAB
 -----END PUBLIC KEY-----
 `
 
+// const DefaultPublicKey2 = `
+// -----BEGIN PUBLIC KEY-----
+// MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx2bxNtzCYin2B6qWRIwPNLP6E4arzRlpPrlb2UIjWq91pJe8yN2
+// QwGigxFDTfkcrv32gqlTJX2xvMr1O7RzA+oIPfA1xfJTzfQHf2HPZ8w67A4WNZHxQmWqcDdUcy6JCKzks1TLGsAH5v17dK/
+// AazM2u6n5OvFrqQMnXr/raZhJRVUg3YVXW6Ppbw7fewX2n1DosC+xLU19fpyHSb/YW/9dlDMJ4tvTHrxTxpT8OOM5/bdl5q
+// eUN8bBsZht1l97Iyp1Od0oFDbBaorFUsyVEnVa7r5fuFlYSoLgLiCXnMNTLpJF4GbSvEG2vXAmTLrlJ+qYWXBL7O1AJU6tZ
+// KchY4wIDAQAB
+// -----END PUBLIC KEY-----
+// `
+
 // 默认设备信息
 // 根据windwos信息构建
 var DefaultDeviceInfo = DeviceInfo{
@@ -36,14 +46,14 @@ var DefaultDeviceInfo = DeviceInfo{
 	MpRemoteType:    "3",
 	MpRemoteChannel: "100",
 
-	MpVersion:     "1.0.3008",
+	MpVersion:     "1.1.201",
 	MpVersionCode: 145,
 
 	MpDeviceSerialNum: strings.ReplaceAll(uuid.NewString(), "-", ""),
 	MpManufcaturer:    "Windows端",
 	MpModel:           "",
 
-	MpOs:         "Windows",
+	MpOs:         "windows",
 	MpOsVersion:  "31",
 	MpOsVersion2: "12",
 }
