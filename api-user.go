@@ -47,7 +47,7 @@ type UserInfo struct {
 // 获取用户详细信息
 func (c *MoClient) GetUserInfo(option ...RestyOption) (*UserInfo, error) {
 	var resp UserInfo
-	_, err := c.Request(MoPanProxyFamily+"/user/info/getUserInfo", nil, &resp, option...)
+	_, err := c.Request(MoPanProxyFamily+"/user/info/getUserInfo", Json{}, &resp, option...)
 	if err != nil {
 		return nil, err
 	}
