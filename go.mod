@@ -7,4 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 )
 
-require golang.org/x/net v0.13.0 // indirect
+require (
+	github.com/hashicorp/go-version v1.6.0 // indirect
+	golang.org/x/net v0.13.0 // indirect
+)

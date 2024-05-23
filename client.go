@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hashicorp/go-version"
 )
 
 type RestyOption func(request *resty.Request)
@@ -86,12 +87,23 @@ func (c *MoClient) SetProxy(proxy string) *MoClient {
 
 func (c *MoClient) request(url string, data Json, resp any, option ...RestyOption) ([]byte, error) {
 	secretKey := GetSecretKey()
-	encryptedKey := MustRsaEncryptBase64Str(secretKey, DefaultPublicKey)
-	req := c.Client.R().SetHeaders(map[string]string{
+
+	headers := map[string]string{
 		"Authorization": c.Authorization,
-		"encrypted-key": encryptedKey,
 		"remoteInfo":    c.DeviceInfo.Encrypt(secretKey),
-	})
+	}
+
+	ver := version.Must(version.NewVersion(c.DeviceInfo.MpVersion))
+	if ver.GreaterThanOrEqual(version.Must(version.NewVersion("1.1.202"))) {
+		encryptedKey := MustRsaEncryptBase64Str(secretKey, PublicKeyV2)
+		headers["version"] = c.DeviceInfo.MpVersion
+		headers["encrypted-key"] = encryptedKey
+	} else {
+		encryptedKey := MustRsaEncryptBase64Str(secretKey, PublicKeyV1)
+		headers["encrypted-key"] = encryptedKey
+	}
+
+	req := c.Client.R().SetHeaders(headers)
 
 	if data != nil {
 		req.SetHeader("Content-Type", "application/json")
